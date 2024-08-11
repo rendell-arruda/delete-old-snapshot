@@ -24,21 +24,22 @@ def lambda_handler(retetion_days,region):
         # Lista de snapshots
         snapshots = client.describe_snapshots(OwnerIds=['self'])["Snapshots"]
         for snapshot in snapshots:
-            print("========= separador =========")
+            # print("========= separador =========")
             # print(f"O snaphot : {snapshot["Description"]}, foi criado em: {snapshot["StartTime"]}")
             snapshot_date = snapshot["StartTime"]
             # se a data do snapshot for menor que a data de retenção, quer dizer que ele é mais antigo que a data de retenção
             if snapshot_date < retention_date:
                 snapshot_id = snapshot['SnapshotId']
                 try:
-                    print("deletando o snapshot {snapshot_id} ")
-                    
+                    print(f"deletando o snapshot {snapshot_id} ")
+                    client.delete_snapshot(SnapshotId=snapshot_id)
+                    print(f"deletado com sucesso {snapshot_id} ")
                 except Exception as e:
-                    print("Erro ao deletar o snapshot {snapshot_id}: {e}")
+                    print(f"Erro ao deletar o snapshot {snapshot_id}: {e}")
                 ...
             else:
                 days_rest = snapshot_date - retention_date
-                print(f"Faltam {days_rest.days } para o snapshot ser deletado")
+                print(f"Faltam {days_rest.days} dias para o snapshot ser deletado")
          
            
     except Exception as e:
