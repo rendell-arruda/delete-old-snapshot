@@ -30,11 +30,15 @@ def lambda_handler(retetion_days,region):
             # se a data do snapshot for menor que a data de retenção, quer dizer que ele é mais antigo que a data de retenção
             if snapshot_date < retention_date:
                 snapshot_id = snapshot['SnapshotId']
-                
+                try:
+                    print("deletando o snapshot {snapshot_id} ")
+                    
+                except Exception as e:
+                    print("Erro ao deletar o snapshot {snapshot_id}: {e}")
                 ...
             else:
                 days_rest = snapshot_date - retention_date
-                print(f"Faltam {days_rest} para o snapshot ser deletado")
+                print(f"Faltam {days_rest.days } para o snapshot ser deletado")
          
            
     except Exception as e:
