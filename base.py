@@ -1,31 +1,45 @@
 import boto3
 from datetime import datetime, timezone, timedelta
 
-# Configurações
-retention_days = 30  # Quantidade de dias para reter os snapshots
-region = 'us-east-1'  # Defina a região
+# Nome do perfil AWS configurado para se conectar à conta "sandbox"
+profile_name = 'sandbox'
 
-# Inicializa o cliente EC2
-ec2 = boto3.client('ec2', region_name=region)
+# Cria uma sessão boto3 utilizando o perfil especificado
+session = boto3.Session(profile_name=profile_name)
 
-def delete_old_snapshots(retention_days):
-    # Calcula a data de corte para a retenção
+# Variáveis
+retention_days = 30
+regions = ['us-east-1']
+
+def lambda_handler(retention_days, region):
+    # Calcula a data de retenção (data atual - dias de retenção)
     retention_date = datetime.now(timezone.utc) - timedelta(days=retention_days)
+    print("Data de retenção:", retention_date)
     
-    # Obtém todos os snapshots criados pela sua conta
-    snapshots = ec2.describe_snapshots(OwnerIds=['self'])['Snapshots']
+    # Cria um cliente EC2 para a região especificada
+    client = session.client('ec2', region_name=region)
     
-    for snapshot in snapshots:
-        # Verifica se o snapshot é mais antigo que a data de retenção
-        snapshot_date = snapshot['StartTime']
-        if snapshot_date < retention_date:
-            snapshot_id = snapshot['SnapshotId']
-            print(f'Deletando snapshot {snapshot_id} criado em {snapshot_date}')
-            try:
-                ec2.delete_snapshot(SnapshotId=snapshot_id)
-                print(f'Snapshot {snapshot_id} deletado com sucesso')
-            except Exception as e:
-                print(f'Erro ao deletar snapshot {snapshot_id}: {str(e)}')
+    try:
+        # Usa um paginator para lidar com grandes listas de snapshots
+        paginator = client.get_paginator('describe_snapshots')
+        for page in paginator.paginate(OwnerIds=['self']):
+            snapshots = page['Snapshots']
+            for snapshot in snapshots:
+                snapshot_date = snapshot["StartTime"]
+                if snapshot_date < retention_date:
+                    snapshot_id = snapshot['SnapshotId']
+                    try:
+                        print(f"Deletando o snapshot {snapshot_id}...")
+                        client.delete_snapshot(SnapshotId=snapshot_id)
+                        print(f"Snapshot {snapshot_id} deletado com sucesso!")
+                    except Exception as e:
+                        print(f"Erro ao deletar o snapshot {snapshot_id}: {e}")
+                else:
+                    days_rest = snapshot_date - retention_date
+                    print(f"Faltam {days_rest.days} dias para o snapshot {snapshot['SnapshotId']} ser deletado.")
+    except Exception as e:
+        print(f"Erro ao listar snapshots: {e}")
 
 if __name__ == "__main__":
-    delete_old_snapshots(retention_days)
+    for region in regions:
+        lambda_handler(retention_days, region)
