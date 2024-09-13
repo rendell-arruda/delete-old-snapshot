@@ -31,7 +31,7 @@ def lambda_handler(retention_days,region):
             for snapshot in snapshots:
                 # pega a data de criação do snashot
                 snapshot_date = snapshot["StartTime"]
-                print(snapshot_date)
+                # print(snapshot_date)
 
                 # se a data do snapshot for menor que a data de retenção, quer dizer que ele é mais antigo que a data de retenção
                 #  exemplo: se a data de retenção for 30 dias, ele vai deletar todos os snapshots mais antigos que 30 dias
